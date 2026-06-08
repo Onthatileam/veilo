@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Login — Veilo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#0a0a0a;--paper:#f5f2ec;--accent:#e8441a;--mid:#888}
+body{background:var(--paper);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{
+  background:#fff;border-radius:20px;padding:52px 48px;
+  width:100%;max-width:440px;
+  box-shadow:0 24px 80px rgba(0,0,0,.08);
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;text-align:center;margin-bottom:40px;color:var(--ink)}
+.logo span{color:var(--accent)}
+h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:6px;letter-spacing:-1px}
+.sub{color:var(--mid);font-size:14px;margin-bottom:36px}
+label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:#444}
+input{
+  width:100%;padding:13px 16px;border:1.5px solid #e8e8e8;border-radius:8px;
+  font-size:15px;font-family:'DM Sans',sans-serif;outline:none;
+  transition:border-color .2s;margin-bottom:20px;background:#fafafa;
+}
+input:focus{border-color:var(--accent);background:#fff}
+.btn{
+  width:100%;padding:15px;background:var(--accent);color:#fff;border:none;
+  border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:background .2s,transform .15s;
+}
+.btn:hover{background:#c73a15;transform:translateY(-1px)}
+.error{background:#fff1f0;border:1px solid #ffccc7;color:#c73a15;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:20px}
+.footer-link{text-align:center;margin-top:28px;font-size:14px;color:var(--mid)}
+.footer-link a{color:var(--accent);text-decoration:none;font-weight:500}
+.divider{text-align:center;font-size:12px;color:var(--mid);margin:20px 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:#eee}
+.divider::before{left:0}.divider::after{right:0}
+.demo-btn{
+  width:100%;padding:13px;background:var(--paper);color:var(--ink);border:1.5px solid #e0ddd6;
+  border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:background .2s;
+}
+.demo-btn:hover{background:#ede9e1}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">vei<span>lo</span></div>
+  <h1>Welcome back</h1>
+  <p class="sub">Sign in to your dashboard</p>
+
+  <% if error %>
+  <div class="error">Invalid email or password. Please try again.</div>
+  <% endif %>
+
+  <form method="POST" action="/login" id="loginForm">
+    <label>Email address</label>
+    <input type="email" name="email" placeholder="you@company.com" required id="emailInput"/>
+    <label>Password</label>
+    <input type="password" name="password" placeholder="••••••••" required/>
+    <button type="submit" class="btn">Sign in →</button>
+  </form>
+
+  <div class="divider">or</div>
+  <button class="demo-btn" onclick="demoLogin()">Try demo account</button>
+
+  <div class="footer-link">Don't have an account? <a href="/register">Start free trial</a></div>
+</div>
+
+<script>
+// Show error if URL has ?error=1
+if(window.location.search.includes('error=1')){
+  document.querySelector('.error') && (document.querySelector('.error').style.display='block');
+}
+function demoLogin(){
+  document.getElementById('emailInput').value='demo@veilo.app';
+  document.querySelector('input[type=password]').value='demo1234';
+  document.getElementById('loginForm').submit();
+}
+// Inline error show
+const params=new URLSearchParams(window.location.search);
+if(!params.get('error')){
+  const el=document.querySelector('.error');
+  if(el)el.style.display='none';
+}
+</script>
+</body>
+</html>

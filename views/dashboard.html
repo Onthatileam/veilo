@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — Veilo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#0a0a0a;--bg:#0d0f14;--sidebar:#13161e;--accent:#e8441a;--accent2:#1a3ee8;--mid:#666;--border:rgba(255,255,255,.07)}
+body{background:var(--bg);color:#fff;font-family:'DM Sans',sans-serif;height:100vh;display:flex;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{
+  width:320px;flex-shrink:0;background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-top{padding:24px;border-bottom:1px solid var(--border)}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#fff;margin-bottom:4px}
+.logo span{color:var(--accent)}
+.company-name{font-size:12px;color:var(--mid)}
+.stat-row{display:flex;gap:12px;margin-top:20px}
+.stat{flex:1;background:rgba(255,255,255,.04);border-radius:10px;padding:14px;border:1px solid var(--border)}
+.stat-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;line-height:1}
+.stat-val.live{color:var(--accent)}
+.stat-lbl{font-size:10px;color:var(--mid);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+/* WORKERS LIST */
+.workers-section{flex:1;overflow-y:auto;padding:20px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--mid)}
+.add-btn{
+  display:flex;align-items:center;gap:6px;padding:7px 14px;
+  background:var(--accent);border:none;border-radius:6px;color:#fff;
+  font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:background .2s;
+}
+.add-btn:hover{background:#c73a15}
+
+.worker-card{
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:12px;padding:16px;margin-bottom:10px;
+  transition:border-color .2s,background .2s;cursor:pointer;
+}
+.worker-card:hover{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06)}
+.worker-card.active{border-color:var(--accent)}
+.worker-head{display:flex;align-items:center;gap:12px}
+.worker-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#ff6b47);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;flex-shrink:0;
+}
+.worker-info{flex:1;min-width:0}
+.worker-name{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.worker-status{font-size:11px;color:var(--mid);margin-top:2px;display:flex;align-items:center;gap:5px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--mid);flex-shrink:0}
+.status-dot.online{background:#22c55e;animation:blink 2s infinite}
+.worker-actions{display:flex;align-items:center;gap:8px;margin-top:12px}
+.link-btn{
+  flex:1;padding:7px;background:rgba(255,255,255,.06);border:1px solid var(--border);
+  border-radius:6px;font-size:11px;color:#ccc;cursor:pointer;text-align:center;
+  font-family:'DM Sans',sans-serif;transition:background .2s;text-decoration:none;
+  display:block;
+}
+.link-btn:hover{background:rgba(255,255,255,.1)}
+.del-btn{
+  padding:7px 10px;background:transparent;border:1px solid rgba(255,68,68,.2);
+  border-radius:6px;color:#ff4444;cursor:pointer;font-size:11px;
+  font-family:'DM Sans',sans-serif;transition:background .2s;
+}
+.del-btn:hover{background:rgba(255,68,68,.1)}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--mid)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:13px;line-height:1.6}
+
+/* MAP */
+.map-area{flex:1;position:relative}
+#map{width:100%;height:100%}
+.map-header{
+  position:absolute;top:20px;left:20px;z-index:1000;
+  background:rgba(13,15,20,.85);backdrop-filter:blur(12px);
+  border:1px solid var(--border);border-radius:12px;padding:14px 20px;
+}
+.map-header h2{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:2px}
+.map-header p{font-size:12px;color:var(--mid)}
+
+/* MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal{
+  background:#1a1d27;border:1px solid var(--border);border-radius:16px;
+  padding:36px;width:100%;max-width:400px;
+  transform:translateY(20px);transition:transform .2s;
+}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal h3{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--mid);margin-bottom:28px}
+.modal label{display:block;font-size:12px;font-weight:500;margin-bottom:6px;color:#aaa}
+.modal input{
+  width:100%;padding:12px 14px;background:rgba(255,255,255,.06);
+  border:1px solid var(--border);border-radius:8px;color:#fff;
+  font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;
+}
+.modal input:focus{border-color:var(--accent)}
+.modal-actions{display:flex;gap:12px;margin-top:8px}
+.modal-cancel{flex:1;padding:12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:#aaa;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px}
+.modal-submit{flex:2;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600}
+
+/* COPY TOAST */
+.toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;
+  font-weight:500;z-index:3000;opacity:0;transition:all .3s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Leaflet dark override */
+.leaflet-tile-pane{filter:brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-top">
+    <div class="logo">vei<span>lo</span></div>
+    <div class="company-name" id="companyName">Loading...</div>
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-val" id="totalWorkers">0</div>
+        <div class="stat-lbl">Workers</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val live" id="activeWorkers">0</div>
+        <div class="stat-lbl">Live now</div>
+      </div>
+    </div>
+  </div>
+  <div class="workers-section">
+    <div class="section-header">
+      <div class="section-title">Your Team</div>
+      <button class="add-btn" onclick="openModal()">+ Add worker</button>
+    </div>
+    <div id="workersList">
+      <div class="empty-state">
+        <div class="icon">👥</div>
+        <p>No workers yet.<br>Add your first team member to get started.</p>
+      </div>
+    </div>
+  </div>
+  <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:12px;color:var(--mid)" id="planBadge">Trial plan</span>
+    <a href="/logout" style="font-size:12px;color:var(--mid);text-decoration:none">Sign out</a>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="map-area">
+  <div class="map-header">
+    <h2>Live Map</h2>
+    <p id="mapStatus">Waiting for workers to go live...</p>
+  </div>
+  <div id="map"></div>
+</div>
+
+<!-- ADD WORKER MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Add a worker</h3>
+    <p>They'll get a unique link to share their location — no app needed.</p>
+    <label>Worker name</label>
+    <input type="text" id="workerName" placeholder="e.g. Marcus Johnson"/>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-submit" onclick="addWorker()">Add worker →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+let map, me, workers=[], markers={}, ownerId;
+const socket = io();
+
+// ── Init map ──────────────────────────────────────────────────────────────────
+map = L.map('map', { zoomControl:false }).setView([40.7128, -74.006], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.control.zoom({ position:'bottomright' }).addTo(map);
+
+// ── Load user ──────────────────────────────────────────────────────────────────
+async function loadMe(){
+  const res = await fetch('/api/me');
+  me = await res.json();
+  ownerId = me.id;
+  workers = me.workers;
+
+  document.getElementById('companyName').textContent = me.company;
+  document.getElementById('planBadge').textContent = me.plan.charAt(0).toUpperCase()+me.plan.slice(1)+' plan';
+  document.getElementById('totalWorkers').textContent = workers.length;
+
+  socket.emit('dashboard:join', { ownerId });
+  renderWorkers();
+  loadLocations();
+}
+
+// ── Render workers ──────────────────────────────────────────────────────────────
+function renderWorkers(){
+  const el = document.getElementById('workersList');
+  if(!workers.length){
+    el.innerHTML=`<div class="empty-state"><div class="icon">👥</div><p>No workers yet.<br>Add your first team member to get started.</p></div>`;
+    return;
+  }
+  el.innerHTML = workers.map(w=>{
+    const initials = w.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const trackUrl = `${location.origin}/track/${w.trackingToken}`;
+    const isActive = !!markers[w.id];
+    return `<div class="worker-card ${isActive?'active':''}" id="wcard-${w.id}" onclick="focusWorker('${w.id}')">
+      <div class="worker-head">
+        <div class="worker-avatar">${initials}</div>
+        <div class="worker-info">
+          <div class="worker-name">${w.name}</div>
+          <div class="worker-status">
+            <div class="status-dot ${isActive?'online':''}"></div>
+            ${isActive?'Live tracking':'Offline'}
+          </div>
+        </div>
+      </div>
+      <div class="worker-actions">
+        <a href="#" class="link-btn" onclick="copyLink('${trackUrl}',event)">📋 Copy tracking link</a>
+        <button class="del-btn" onclick="deleteWorker('${w.id}',event)">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Load existing locations ────────────────────────────────────────────────────
+async function loadLocations(){
+  const res = await fetch('/api/locations');
+  const locs = await res.json();
+  Object.entries(locs).forEach(([wid,loc])=>{
+    updateMarker(wid, loc.lat, loc.lng, loc.name);
+  });
+  updateStats();
+}
+
+// ── Socket: live updates ───────────────────────────────────────────────────────
+socket.on(`location:${ownerId}`, (data)=>{
+  updateMarker(data.workerId, data.lat, data.lng, data.name);
+  updateStats();
+  renderWorkers();
+  document.getElementById('mapStatus').textContent = `${data.name} just updated location`;
+});
+
+// Workaround: re-bind after ownerId known
+setTimeout(()=>{
+  if(ownerId) socket.on(`location:${ownerId}`, (data)=>{
+    updateMarker(data.workerId, data.lat, data.lng, data.name);
+    updateStats();
+    renderWorkers();
+  });
+},500);
+
+// ── Map markers ───────────────────────────────────────────────────────────────
+function updateMarker(wid, lat, lng, name){
+  const worker = workers.find(w=>w.id===wid);
+  const initials = (worker?.name||name).split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const icon = L.divIcon({
+    html:`<div style="
+      background:#e8441a;color:#fff;width:36px;height:36px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;
+      border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.4);
+      position:relative;
+    ">${initials}<div style="
+      position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+      width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #e8441a;
+    "></div></div>
+    <div style="
+      background:rgba(0,0,0,.75);color:#fff;font-size:11px;font-family:'DM Sans',sans-serif;
+      padding:3px 8px;border-radius:4px;white-space:nowrap;margin-top:4px;text-align:center;
+    ">${worker?.name||name}</div>`,
+    iconSize:[60,60],iconAnchor:[30,52],className:''
+  });
+  if(markers[wid]){
+    markers[wid].setLatLng([lat,lng]);
+  } else {
+    markers[wid] = L.marker([lat,lng],{icon}).addTo(map);
+  }
+  markers[wid].setIcon(icon);
+}
+
+function focusWorker(wid){
+  if(markers[wid]) map.flyTo(markers[wid].getLatLng(), 15, {duration:1.2});
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('totalWorkers').textContent = workers.length;
+  document.getElementById('activeWorkers').textContent = Object.keys(markers).length;
+}
+
+// ── Add worker ────────────────────────────────────────────────────────────────
+function openModal(){ document.getElementById('modalOverlay').classList.add('open'); setTimeout(()=>document.getElementById('workerName').focus(),200) }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open') }
+
+async function addWorker(){
+  const name = document.getElementById('workerName').value.trim();
+  if(!name) return;
+  const res = await fetch('/api/workers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  const worker = await res.json();
+  workers.push(worker);
+  renderWorkers();
+  updateStats();
+  closeModal();
+  document.getElementById('workerName').value='';
+  const trackUrl = `${location.origin}/track/${worker.trackingToken}`;
+  showToast('Worker added! Link copied ✓');
+  navigator.clipboard.writeText(trackUrl).catch(()=>{});
+}
+
+// ── Delete worker ─────────────────────────────────────────────────────────────
+async function deleteWorker(wid, e){
+  e.stopPropagation();
+  if(!confirm('Remove this worker?')) return;
+  await fetch(`/api/workers/${wid}`,{method:'DELETE'});
+  workers = workers.filter(w=>w.id!==wid);
+  if(markers[wid]){ map.removeLayer(markers[wid]); delete markers[wid]; }
+  renderWorkers();
+  updateStats();
+}
+
+// ── Copy link ─────────────────────────────────────────────────────────────────
+function copyLink(url, e){
+  e.stopPropagation();e.preventDefault();
+  navigator.clipboard.writeText(url).then(()=>showToast('Tracking link copied!')).catch(()=>showToast('Link: '+url));
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Enter key on modal
+document.getElementById('workerName').addEventListener('keydown',e=>{ if(e.key==='Enter') addWorker(); });
+
+loadMe();
+</script>
+</body>
+</html>

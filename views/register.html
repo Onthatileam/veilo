@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Start Free Trial — Veilo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#0a0a0a;--paper:#f5f2ec;--accent:#e8441a;--mid:#888}
+body{background:var(--paper);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.card{background:#fff;border-radius:20px;padding:52px 48px;width:100%;max-width:440px;box-shadow:0 24px 80px rgba(0,0,0,.08)}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;text-align:center;margin-bottom:40px;color:var(--ink)}
+.logo span{color:var(--accent)}
+h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:6px;letter-spacing:-1px}
+.sub{color:var(--mid);font-size:14px;margin-bottom:36px}
+label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:#444}
+input{width:100%;padding:13px 16px;border:1.5px solid #e8e8e8;border-radius:8px;font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;margin-bottom:20px;background:#fafafa}
+input:focus{border-color:var(--accent);background:#fff}
+.btn{width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s,transform .15s}
+.btn:hover{background:#c73a15;transform:translateY(-1px)}
+.error{background:#fff1f0;border:1px solid #ffccc7;color:#c73a15;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:20px;display:none}
+.footer-link{text-align:center;margin-top:28px;font-size:14px;color:var(--mid)}
+.footer-link a{color:var(--accent);text-decoration:none;font-weight:500}
+.perks{margin:24px 0;padding:20px;background:#fafafa;border-radius:10px;border:1px solid #f0f0f0}
+.perk{display:flex;align-items:center;gap:10px;font-size:13px;color:#444;margin-bottom:10px}
+.perk:last-child{margin-bottom:0}
+.perk-icon{color:var(--accent);font-size:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">vei<span>lo</span></div>
+  <h1>Start for free</h1>
+  <p class="sub">14-day trial, no credit card required</p>
+
+  <div class="error" id="errBox">An account with that email already exists. <a href="/login">Sign in instead</a></div>
+
+  <form method="POST" action="/register">
+    <label>Company name</label>
+    <input type="text" name="company" placeholder="Acme Cleaning Co." required/>
+    <label>Work email</label>
+    <input type="email" name="email" placeholder="you@company.com" required/>
+    <label>Password</label>
+    <input type="password" name="password" placeholder="Min 8 characters" minlength="6" required/>
+    <button type="submit" class="btn">Create account →</button>
+  </form>
+
+  <div class="perks">
+    <div class="perk"><span class="perk-icon">✓</span>Live map for your whole team</div>
+    <div class="perk"><span class="perk-icon">✓</span>No app download needed for workers</div>
+    <div class="perk"><span class="perk-icon">✓</span>Set up in under 5 minutes</div>
+  </div>
+
+  <div class="footer-link">Already have an account? <a href="/login">Sign in</a></div>
+</div>
+<script>
+if(new URLSearchParams(window.location.search).get('error')==='exists'){
+  document.getElementById('errBox').style.display='block';
+}
+</script>
+</body>
+</html>

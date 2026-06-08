@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pricing — Veilo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#0a0a0a;--paper:#f5f2ec;--accent:#e8441a;--mid:#888}
+body{background:var(--paper);font-family:'DM Sans',sans-serif;color:var(--ink)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:20px 48px;border-bottom:1px solid rgba(0,0,0,.06)}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;text-decoration:none;color:var(--ink)}
+.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:20px;align-items:center}
+.nav-links a{text-decoration:none;color:var(--mid);font-size:14px}
+.nav-cta{background:var(--ink);color:#fff!important;padding:10px 22px;border-radius:6px;font-weight:500}
+.hero{text-align:center;padding:80px 48px 60px}
+.section-label{font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+h1{font-family:'Syne',sans-serif;font-size:clamp(40px,5vw,64px);font-weight:800;letter-spacing:-2px;margin-bottom:16px}
+.hero p{font-size:18px;color:var(--mid);max-width:480px;margin:0 auto}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:0 auto;padding:0 48px 80px}
+.plan{background:#fff;border-radius:16px;padding:40px 32px;border:2px solid transparent;transition:border-color .2s,transform .2s;position:relative}
+.plan:hover{border-color:var(--accent);transform:translateY(-4px)}
+.plan.featured{border-color:var(--accent);transform:translateY(-8px)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:4px 14px;border-radius:20px}
+.plan-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--mid);margin-bottom:16px}
+.plan-price{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;line-height:1;letter-spacing:-2px}
+.plan-price sup{font-size:24px;vertical-align:top;margin-top:10px}
+.plan-per{font-size:13px;color:var(--mid);margin-top:6px;margin-bottom:28px}
+.plan-features{list-style:none;margin-bottom:32px}
+.plan-features li{font-size:14px;padding:9px 0;border-bottom:1px solid #f5f5f5;display:flex;align-items:center;gap:10px;color:#444}
+.plan-features li::before{content:'✓';color:var(--accent);font-weight:700;flex-shrink:0}
+.plan-btn{display:block;text-align:center;padding:14px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;transition:all .2s}
+.plan-btn-primary{background:var(--accent);color:#fff}
+.plan-btn-primary:hover{background:#c73a15}
+.plan-btn-ghost{background:var(--paper);color:var(--ink)}
+.plan-btn-ghost:hover{background:#e8e5de}
+.faq{padding:60px 48px;max-width:700px;margin:0 auto}
+.faq h2{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:32px}
+.faq-item{border-top:1px solid #e8e8e8;padding:24px 0}
+.faq-q{font-size:16px;font-weight:500;margin-bottom:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.faq-a{font-size:14px;color:var(--mid);line-height:1.7}
+@media(max-width:768px){.pricing-grid{grid-template-columns:1fr;padding:0 24px 60px}.hero{padding:60px 24px 40px}nav{padding:16px 24px}.plan.featured{transform:none}.faq{padding:40px 24px}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">vei<span>lo</span></a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/login">Login</a>
+    <a href="/register" class="nav-cta">Start free trial</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="section-label">Pricing</div>
+  <h1>Simple, transparent pricing</h1>
+  <p>Start free for 14 days. No credit card required. Cancel anytime.</p>
+</div>
+
+<div class="pricing-grid">
+  <div class="plan">
+    <div class="plan-name">Starter</div>
+    <div class="plan-price"><sup>$</sup>49</div>
+    <div class="plan-per">per month · up to 5 workers</div>
+    <ul class="plan-features">
+      <li>Live map dashboard</li>
+      <li>5 worker tracking links</li>
+      <li>Basic geofence alerts</li>
+      <li>7-day location history</li>
+      <li>Email support</li>
+    </ul>
+    <a href="/register" class="plan-btn plan-btn-ghost">Start free trial</a>
+  </div>
+  <div class="plan featured">
+    <div class="plan-badge">Most popular</div>
+    <div class="plan-name">Pro</div>
+    <div class="plan-price"><sup>$</sup>149</div>
+    <div class="plan-per">per month · up to 25 workers</div>
+    <ul class="plan-features">
+      <li>Live map dashboard</li>
+      <li>25 worker tracking links</li>
+      <li>Advanced geofence alerts</li>
+      <li>30-day location history</li>
+      <li>Activity replay</li>
+      <li>Priority support</li>
+    </ul>
+    <a href="/register" class="plan-btn plan-btn-primary">Start free trial</a>
+  </div>
+  <div class="plan">
+    <div class="plan-name">Business</div>
+    <div class="plan-price"><sup>$</sup>299</div>
+    <div class="plan-per">per month · unlimited workers</div>
+    <ul class="plan-features">
+      <li>Live map dashboard</li>
+      <li>Unlimited workers</li>
+      <li>Full geofence suite</li>
+      <li>90-day location history</li>
+      <li>Activity replay</li>
+      <li>White-label option</li>
+      <li>Dedicated support</li>
+    </ul>
+    <a href="/register" class="plan-btn plan-btn-ghost">Start free trial</a>
+  </div>
+</div>
+
+<div class="faq">
+  <h2>Common questions</h2>
+  <div class="faq-item">
+    <div class="faq-q">Do my workers need to download an app?</div>
+    <div class="faq-a">No. Workers open a link in any browser on their phone and tap "Start Sharing." No app store, no account, no download required.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">How accurate is the location tracking?</div>
+    <div class="faq-a">Veilo uses the device's GPS which is typically accurate to within 5–10 meters. It updates every few seconds while the worker has the page open.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Can workers turn off tracking?</div>
+    <div class="faq-a">Yes. Workers are always in control — tracking only runs when they actively press Start. They can stop at any time by closing the page or pressing Stop.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Can I cancel anytime?</div>
+    <div class="faq-a">Absolutely. No contracts, no lock-in. Cancel from your dashboard anytime and you won't be charged again.</div>
+  </div>
+</div>
+</body>
+</html>

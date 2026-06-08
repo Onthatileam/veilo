@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Veilo — Share Your Location</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#0a0a0a;--bg:#0d0f14;--accent:#e8441a;--green:#22c55e;--mid:#666}
+body{background:var(--bg);color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#fff;margin-bottom:48px}
+.logo span{color:var(--accent)}
+.icon-wrap{
+  width:96px;height:96px;border-radius:50%;
+  background:rgba(232,68,26,.12);border:2px solid rgba(232,68,26,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:40px;margin:0 auto 28px;
+  transition:all .4s;
+}
+.icon-wrap.active{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4);animation:pulse-ring 2s infinite}
+h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:10px}
+.sub{color:var(--mid);font-size:15px;line-height:1.6;margin-bottom:36px;max-width:320px}
+.btn{
+  padding:18px 48px;border-radius:12px;font-size:16px;font-weight:600;
+  font-family:'DM Sans',sans-serif;cursor:pointer;border:none;
+  transition:all .2s;display:flex;align-items:center;gap:10px;margin:0 auto;
+}
+.btn-start{background:var(--accent);color:#fff;box-shadow:0 8px 32px rgba(232,68,26,.35)}
+.btn-start:hover{background:#c73a15;transform:translateY(-2px)}
+.btn-stop{background:rgba(255,68,68,.15);color:#ff6b6b;border:1px solid rgba(255,68,68,.3)}
+.btn-stop:hover{background:rgba(255,68,68,.25)}
+
+.status-card{
+  margin-top:28px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:20px 28px;width:100%;max-width:300px;
+}
+.status-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.status-row:last-child{margin-bottom:0}
+.status-key{font-size:12px;color:var(--mid);text-transform:uppercase;letter-spacing:1px}
+.status-val{font-size:13px;font-weight:500}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;animation:blink 1.5s infinite}
+
+.error-card{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.2);border-radius:12px;padding:20px;margin-top:20px;max-width:300px}
+.error-card p{font-size:13px;color:#ff8888;line-height:1.6}
+
+.privacy-note{margin-top:32px;font-size:12px;color:rgba(255,255,255,.25);max-width:280px;line-height:1.5}
+
+@keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(34,197,94,.4)}70%{box-shadow:0 0 0 16px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+
+<div class="logo">vei<span>lo</span></div>
+
+<div id="loading">
+  <div style="color:var(--mid);font-size:14px">Verifying link...</div>
+</div>
+
+<div id="main" style="display:none;width:100%;align-items:center;flex-direction:column">
+  <div class="icon-wrap" id="iconWrap">📍</div>
+  <h1 id="greeting">Ready to track</h1>
+  <p class="sub" id="subText">Tap the button below to start sharing your location with your manager's dashboard.</p>
+
+  <button class="btn btn-start" id="startBtn" onclick="startTracking()">
+    <span>📡</span> Start sharing location
+  </button>
+  <button class="btn btn-stop" id="stopBtn" onclick="stopTracking()" style="display:none;margin-top:14px">
+    ■ Stop sharing
+  </button>
+
+  <div class="status-card" id="statusCard" style="display:none">
+    <div class="status-row">
+      <span class="status-key">Status</span>
+      <span class="status-val"><span class="live-dot"></span>Live</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">Latitude</span>
+      <span class="status-val" id="latVal">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">Longitude</span>
+      <span class="status-val" id="lngVal">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">Last update</span>
+      <span class="status-val" id="lastUpdate">—</span>
+    </div>
+  </div>
+
+  <div class="error-card" id="errorCard" style="display:none">
+    <p id="errorText">An error occurred.</p>
+  </div>
+
+  <p class="privacy-note">Your location is only shared while this page is open and you've pressed Start. You can stop anytime.</p>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const token = location.pathname.split('/track/')[1];
+const socket = io();
+let watchId = null;
+let workerId = null;
+let workerName = null;
+
+async function init(){
+  try{
+    const res = await fetch(`/api/track/${token}`);
+    if(!res.ok) throw new Error('Invalid link');
+    const data = await res.json();
+    workerId = data.workerId;
+    workerName = data.name;
+    document.getElementById('greeting').textContent = `Hi, ${workerName.split(' ')[0]}!`;
+    document.getElementById('loading').style.display='none';
+    document.getElementById('main').style.display='flex';
+  }catch(e){
+    document.getElementById('loading').innerHTML=`<div class="error-card"><p>This tracking link is invalid or has been removed by your manager.</p></div>`;
+  }
+}
+
+function startTracking(){
+  if(!navigator.geolocation){ showError('Geolocation is not supported on this device.'); return; }
+  document.getElementById('startBtn').style.display='none';
+  document.getElementById('stopBtn').style.display='flex';
+  document.getElementById('statusCard').style.display='block';
+  document.getElementById('iconWrap').classList.add('active');
+  document.getElementById('iconWrap').textContent='🟢';
+  document.getElementById('greeting').textContent=`Sharing live, ${workerName.split(' ')[0]}`;
+
+  watchId = navigator.geolocation.watchPosition(
+    (pos)=>{
+      const { latitude:lat, longitude:lng } = pos.coords;
+      socket.emit('worker:location',{ workerId, lat, lng, token });
+      document.getElementById('latVal').textContent = lat.toFixed(5);
+      document.getElementById('lngVal').textContent = lng.toFixed(5);
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+      document.getElementById('errorCard').style.display='none';
+    },
+    (err)=>{
+      showError(err.code===1 ? 'Location permission denied. Please allow location access in your browser settings.' : 'Could not get your location. Please check your GPS.');
+    },
+    { enableHighAccuracy:true, maximumAge:5000, timeout:15000 }
+  );
+}
+
+function stopTracking(){
+  if(watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+  document.getElementById('startBtn').style.display='flex';
+  document.getElementById('stopBtn').style.display='none';
+  document.getElementById('statusCard').style.display='none';
+  document.getElementById('iconWrap').classList.remove('active');
+  document.getElementById('iconWrap').textContent='📍';
+  document.getElementById('greeting').textContent=`Ready to track`;
+}
+
+function showError(msg){
+  document.getElementById('errorCard').style.display='block';
+  document.getElementById('errorText').textContent=msg;
+}
+
+init();
+</script>
+</body>
+</html>
