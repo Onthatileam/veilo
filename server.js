@@ -97,7 +97,7 @@ app.post('/register', (req, res) => {
 app.get('/logout', (req, res) => { req.session.destroy(); res.redirect('/'); });
 app.get('/dashboard', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'views/dashboard.html')));
 app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, 'views/pricing.html')));
-app.get('/checkout', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'views/checkout.html')));
+app.get("/checkout", (req, res) => res.sendFile(path.join(__dirname, "views/checkout.html")));
 app.get('/success', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'views/success.html')));
 
 // ── API ───────────────────────────────────────────────────────────────────────
