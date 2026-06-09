@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Checkout — Veilo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#0a0a0a;--paper:#f5f2ec;--accent:#e8441a;--mid:#888}
+body{background:var(--paper);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.wrap{width:100%;max-width:460px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;text-align:center;margin-bottom:40px;color:var(--ink)}
+.logo span{color:var(--accent)}
+.card{background:#fff;border-radius:20px;padding:40px;box-shadow:0 24px 80px rgba(0,0,0,.08)}
+.plan-summary{background:var(--paper);border-radius:12px;padding:20px;margin-bottom:28px}
+.plan-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px}
+.plan-price{font-size:32px;font-weight:700;color:var(--accent)}
+.plan-price span{font-size:14px;color:var(--mid);font-weight:400}
+.plan-features{margin-top:12px}
+.plan-features li{font-size:13px;color:#555;padding:4px 0;display:flex;align-items:center;gap:8px;list-style:none}
+.plan-features li::before{content:'✓';color:var(--accent);font-weight:700}
+h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px}
+.sub{font-size:14px;color:var(--mid);margin-bottom:28px}
+#paypal-button-container{margin-top:8px}
+.secure{text-align:center;font-size:12px;color:var(--mid);margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px}
+.back{display:block;text-align:center;margin-top:20px;font-size:14px;color:var(--mid);text-decoration:none}
+.back:hover{color:var(--ink)}
+.loading{text-align:center;padding:20px;color:var(--mid);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">vei<span>lo</span></div>
+  <div class="card">
+    <div class="plan-summary" id="planSummary">
+      <div class="loading">Loading plan...</div>
+    </div>
+    <h2>Complete your order</h2>
+    <p class="sub">You'll be charged monthly. Cancel anytime.</p>
+    <div id="paypal-button-container"></div>
+    <div class="secure">🔒 Secured by PayPal</div>
+    <a href="/pricing" class="back">← Back to pricing</a>
+  </div>
+</div>
+
+<script src="https://www.paypal.com/sdk/js?client-id=AVuNfbKdu0u-IoVd_LNb0CGZnEiF_0oaVAqViBwj5mB8VdMbzzecojm5RgAHSfvGTsbWVJC3YA5LPu5i&currency=USD"></script>
+<script>
+const PLANS = {
+  starter: { name: 'Starter', price: 49,  workers: 5,   features: ['5 worker tracking links','Live map dashboard','Basic geofence alerts','7-day history'] },
+  pro:     { name: 'Pro',     price: 149, workers: 25,  features: ['25 worker tracking links','Live map dashboard','Advanced geofence alerts','30-day history','Activity replay'] },
+  business:{ name: 'Business',price: 299, workers: 999, features: ['Unlimited workers','Live map dashboard','Full geofence suite','90-day history','White-label option'] }
+};
+
+const params = new URLSearchParams(window.location.search);
+const plan = params.get('plan') || 'pro';
+const p = PLANS[plan] || PLANS.pro;
+
+document.getElementById('planSummary').innerHTML = `
+  <div class="plan-name">${p.name} Plan</div>
+  <div class="plan-price">$${p.price}<span>/month</span></div>
+  <ul class="plan-features">${p.features.map(f=>`<li>${f}</li>`).join('')}</ul>
+`;
+
+paypal.Buttons({
+  createOrder: async () => {
+    const res = await fetch('/api/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan })
+    });
+    const data = await res.json();
+    return data.orderId;
+  },
+  onApprove: async (data) => {
+    const res = await fetch('/api/paypal/capture-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: data.orderID, plan })
+    });
+    const result = await res.json();
+    if (result.success) {
+      window.location.href = '/success?plan=' + plan;
+    } else {
+      alert('Payment failed. Please try again.');
+    }
+  },
+  onError: (err) => {
+    console.error(err);
+    alert('Something went wrong with PayPal. Please try again.');
+  }
+}).render('#paypal-button-container');
+</script>
+</body>
+</html>

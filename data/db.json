@@ -7,38 +7,8 @@
       "company": "Demo Cleaning Co",
       "plan": "pro",
       "workers": []
-    },
-    {
-      "id": "u1780959845264",
-      "email": "demolive@veilo.app",
-      "password": "demo1234",
-      "company": "Veilo",
-      "plan": "trial",
-      "workers": []
     }
   ],
-  "workers": [
-    {
-      "id": "w1780959906043",
-      "ownerId": "u1780959845264",
-      "name": "That",
-      "trackingToken": "7vwog2ta",
-      "active": false
-    },
-    {
-      "id": "w1780960281998",
-      "ownerId": "u1",
-      "name": "123",
-      "trackingToken": "ua40nl4i",
-      "active": false
-    }
-  ],
-  "locations": {
-    "w1780960163412": {
-      "lat": -26.72104120132957,
-      "lng": 27.06331568449404,
-      "name": "that",
-      "ts": 1780960254601
-    }
-  }
+  "workers": [],
+  "locations": {}
 }

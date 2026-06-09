@@ -6,6 +6,30 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// ── PayPal ────────────────────────────────────────────────────────────────────
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
+const PAYPAL_SECRET = process.env.PAYPAL_SECRET;
+const PAYPAL_BASE = 'https://api-m.paypal.com';
+
+async function getPayPalToken() {
+  const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Basic ' + Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`).toString('base64'),
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: 'grant_type=client_credentials'
+  });
+  const data = await res.json();
+  return data.access_token;
+}
+
+const PLANS = {
+  starter: { name: 'Starter', price: 49,  workers: 5 },
+  pro:     { name: 'Pro',     price: 149, workers: 25 },
+  business:{ name: 'Business',price: 299, workers: 999 }
+};
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -31,7 +55,6 @@ function writeDB(data) {
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
 }
 
-// Init DB with demo account
 if (!fs.existsSync(DB_PATH)) {
   writeDB({
     users: [{ id: 'u1', email: 'demo@veilo.app', password: 'demo1234', company: 'Demo Co', plan: 'pro', workers: [] }],
@@ -47,11 +70,8 @@ function requireAuth(req, res, next) {
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-
-// Landing page
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'views/landing.html')));
 
-// Login
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'views/login.html')));
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
@@ -62,7 +82,6 @@ app.post('/login', (req, res) => {
   res.redirect('/dashboard');
 });
 
-// Register
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'views/register.html')));
 app.post('/register', (req, res) => {
   const { email, password, company } = req.body;
@@ -75,13 +94,13 @@ app.post('/register', (req, res) => {
   res.redirect('/dashboard');
 });
 
-// Logout
 app.get('/logout', (req, res) => { req.session.destroy(); res.redirect('/'); });
-
-// Dashboard
 app.get('/dashboard', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'views/dashboard.html')));
+app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, 'views/pricing.html')));
+app.get('/checkout', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'views/checkout.html')));
+app.get('/success', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'views/success.html')));
 
-// API: get current user info
+// ── API ───────────────────────────────────────────────────────────────────────
 app.get('/api/me', requireAuth, (req, res) => {
   const db = readDB();
   const user = db.users.find(u => u.id === req.session.userId);
@@ -90,15 +109,13 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({ id: user.id, email: user.email, company: user.company, plan: user.plan, workers });
 });
 
-// API: add worker
 app.post('/api/workers', requireAuth, (req, res) => {
-  const { name, phone } = req.body;
+  const { name } = req.body;
   const db = readDB();
   const worker = {
     id: 'w' + Date.now(),
     ownerId: req.session.userId,
     name,
-    phone,
     trackingToken: Math.random().toString(36).slice(2, 10),
     active: false
   };
@@ -107,7 +124,6 @@ app.post('/api/workers', requireAuth, (req, res) => {
   res.json(worker);
 });
 
-// API: delete worker
 app.delete('/api/workers/:id', requireAuth, (req, res) => {
   const db = readDB();
   db.workers = db.workers.filter(w => !(w.id === req.params.id && w.ownerId === req.session.userId));
@@ -115,7 +131,6 @@ app.delete('/api/workers/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// API: get worker locations
 app.get('/api/locations', requireAuth, (req, res) => {
   const db = readDB();
   const myWorkers = db.workers.filter(w => w.ownerId === req.session.userId).map(w => w.id);
@@ -124,10 +139,8 @@ app.get('/api/locations', requireAuth, (req, res) => {
   res.json(locs);
 });
 
-// Worker tracking page (no auth needed — shareable link)
 app.get('/track/:token', (req, res) => res.sendFile(path.join(__dirname, 'views/tracker.html')));
 
-// API: validate tracking token
 app.get('/api/track/:token', (req, res) => {
   const db = readDB();
   const worker = db.workers.find(w => w.trackingToken === req.params.token);
@@ -135,26 +148,72 @@ app.get('/api/track/:token', (req, res) => {
   res.json({ workerId: worker.id, name: worker.name });
 });
 
-// Pricing page
-app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, 'views/pricing.html')));
+// ── PayPal: Create order ──────────────────────────────────────────────────────
+app.post('/api/paypal/create-order', requireAuth, async (req, res) => {
+  const { plan } = req.body;
+  if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
+  try {
+    const token = await getPayPalToken();
+    const order = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [{
+          amount: { currency_code: 'USD', value: PLANS[plan].price.toString() },
+          description: `Veilo ${PLANS[plan].name} Plan - Monthly`
+        }]
+      })
+    });
+    const data = await order.json();
+    res.json({ orderId: data.id });
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: 'PayPal error' });
+  }
+});
+
+// ── PayPal: Capture order ─────────────────────────────────────────────────────
+app.post('/api/paypal/capture-order', requireAuth, async (req, res) => {
+  const { orderId, plan } = req.body;
+  if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
+  try {
+    const token = await getPayPalToken();
+    const capture = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+    const data = await capture.json();
+    if (data.status === 'COMPLETED') {
+      const db = readDB();
+      const user = db.users.find(u => u.id === req.session.userId);
+      if (user) {
+        user.plan = plan;
+        user.paidAt = Date.now();
+        user.orderId = orderId;
+        writeDB(db);
+      }
+      res.json({ success: true, plan });
+    } else {
+      res.status(400).json({ error: 'Payment not completed', details: data });
+    }
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: 'Capture error' });
+  }
+});
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-
-  // Worker sends location update
   socket.on('worker:location', ({ workerId, lat, lng, token }) => {
     const db = readDB();
     const worker = db.workers.find(w => w.id === workerId && w.trackingToken === token);
     if (!worker) return;
-
     db.locations[workerId] = { lat, lng, name: worker.name, ts: Date.now() };
     writeDB(db);
-
-    // Broadcast to all dashboard watchers of this owner
     io.emit(`location:${worker.ownerId}`, { workerId, lat, lng, name: worker.name, ts: Date.now() });
   });
 
-  // Dashboard joins room for their owner id
   socket.on('dashboard:join', ({ ownerId }) => {
     socket.join(`owner:${ownerId}`);
   });
