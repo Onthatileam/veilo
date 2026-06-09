@@ -17,25 +17,21 @@ body{background:var(--paper);font-family:'DM Sans',sans-serif;min-height:100vh;d
 .plan-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px}
 .plan-price{font-size:32px;font-weight:700;color:var(--accent)}
 .plan-price span{font-size:14px;color:var(--mid);font-weight:400}
-.plan-features{margin-top:12px}
-.plan-features li{font-size:13px;color:#555;padding:4px 0;display:flex;align-items:center;gap:8px;list-style:none}
+.plan-features{margin-top:12px;list-style:none}
+.plan-features li{font-size:13px;color:#555;padding:4px 0;display:flex;align-items:center;gap:8px}
 .plan-features li::before{content:'✓';color:var(--accent);font-weight:700}
 h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px}
 .sub{font-size:14px;color:var(--mid);margin-bottom:28px}
-#paypal-button-container{margin-top:8px}
-.secure{text-align:center;font-size:12px;color:var(--mid);margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px}
+#paypal-button-container{min-height:50px}
+.secure{text-align:center;font-size:12px;color:var(--mid);margin-top:16px}
 .back{display:block;text-align:center;margin-top:20px;font-size:14px;color:var(--mid);text-decoration:none}
-.back:hover{color:var(--ink)}
-.loading{text-align:center;padding:20px;color:var(--mid);font-size:14px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="logo">vei<span>lo</span></div>
   <div class="card">
-    <div class="plan-summary" id="planSummary">
-      <div class="loading">Loading plan...</div>
-    </div>
+    <div class="plan-summary" id="planSummary"></div>
     <h2>Complete your order</h2>
     <p class="sub">You'll be charged monthly. Cancel anytime.</p>
     <div id="paypal-button-container"></div>
@@ -44,52 +40,55 @@ h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6p
   </div>
 </div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=AVuNfbKdu0u-IoVd_LNb0CGZnEiF_0oaVAqViBwj5mB8VdMbzzecojm5RgAHSfvGTsbWVJC3YA5LPu5i&currency=USD"></script>
 <script>
 const PLANS = {
-  starter: { name: 'Starter', price: 49,  workers: 5,   features: ['5 worker tracking links','Live map dashboard','Basic geofence alerts','7-day history'] },
-  pro:     { name: 'Pro',     price: 149, workers: 25,  features: ['25 worker tracking links','Live map dashboard','Advanced geofence alerts','30-day history','Activity replay'] },
-  business:{ name: 'Business',price: 299, workers: 999, features: ['Unlimited workers','Live map dashboard','Full geofence suite','90-day history','White-label option'] }
+  starter: { name: 'Starter', price: 49,  features: ['5 worker tracking links','Live map dashboard','Basic geofence alerts'] },
+  pro:     { name: 'Pro',     price: 149, features: ['25 worker tracking links','Live map dashboard','Advanced geofence alerts','30-day history'] },
+  business:{ name: 'Business',price: 299, features: ['Unlimited workers','Full geofence suite','90-day history','White-label option'] }
 };
-
-const params = new URLSearchParams(window.location.search);
-const plan = params.get('plan') || 'pro';
+const plan = new URLSearchParams(window.location.search).get('plan') || 'pro';
 const p = PLANS[plan] || PLANS.pro;
-
 document.getElementById('planSummary').innerHTML = `
   <div class="plan-name">${p.name} Plan</div>
   <div class="plan-price">$${p.price}<span>/month</span></div>
   <ul class="plan-features">${p.features.map(f=>`<li>${f}</li>`).join('')}</ul>
 `;
+</script>
 
-paypal.Buttons({
-  createOrder: async () => {
-    const res = await fetch('/api/paypal/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan })
-    });
-    const data = await res.json();
-    return data.orderId;
-  },
-  onApprove: async (data) => {
-    const res = await fetch('/api/paypal/capture-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: data.orderID, plan })
-    });
-    const result = await res.json();
-    if (result.success) {
-      window.location.href = '/success?plan=' + plan;
-    } else {
-      alert('Payment failed. Please try again.');
+<script src="https://www.paypal.com/sdk/js?client-id=AVuNfbKdu0u-IoVd_LNb0CGZnEiF_0oaVAqViBwj5mB8VdMbzzecojm5RgAHSfvGTsbWVJC3YA5LPu5i&currency=USD&intent=capture" onload="initPayPal()" onerror="document.getElementById('paypal-button-container').innerHTML='<p style=color:red>PayPal failed to load. Please refresh.</p>'"></script>
+
+<script>
+function initPayPal() {
+  paypal.Buttons({
+    createOrder: async () => {
+      const res = await fetch('/api/paypal/create-order', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ plan })
+      });
+      const data = await res.json();
+      if (!data.orderId) throw new Error('No order ID');
+      return data.orderId;
+    },
+    onApprove: async (data) => {
+      const res = await fetch('/api/paypal/capture-order', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ orderId: data.orderID, plan })
+      });
+      const result = await res.json();
+      if (result.success) {
+        window.location.href = '/success?plan=' + plan;
+      } else {
+        alert('Payment failed. Please try again.');
+      }
+    },
+    onError: (err) => {
+      console.error('PayPal error:', err);
+      document.getElementById('paypal-button-container').innerHTML = '<p style="color:red;font-size:13px">PayPal error. Please refresh and try again.</p>';
     }
-  },
-  onError: (err) => {
-    console.error(err);
-    alert('Something went wrong with PayPal. Please try again.');
-  }
-}).render('#paypal-button-container');
+  }).render('#paypal-button-container');
+}
 </script>
 </body>
 </html>
